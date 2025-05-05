@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: common_utils
+Version: 0.1.0
+Requires-Dist: gspread>=5.0.0
+Requires-Dist: google-auth
+Requires-Dist: google-auth-oauthlib
+Dynamic: requires-dist
