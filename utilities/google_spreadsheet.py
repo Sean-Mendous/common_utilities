@@ -83,7 +83,46 @@ def output_google_spreadsheet(sheet, column_map, row, data):
     except Exception as e:
         logger.error(f"google_spreadsheet.py_🔴 {e}")
         return False
-	
+
+def input_google_spreadsheet_multi(sheet, column_map, row_start, row_end):
+    keys = [k for k in column_map if k != "headder"]
+    ranges = [f"{column_map[k]}{row_start}:{column_map[k]}{row_end}" for k in keys]
+    
+    try:
+        results = sheet.batch_get(ranges)
+        logger.info(f" > spreadsheet.py_🟢 batch_get success")
+    except Exception as e:
+        raise RuntimeError(f" > spreadsheet.py_🔴 batch_get failed: {e}")
+
+    row_count = row_end - row_start + 1
+    row_dicts = []
+
+    for i in range(row_count):
+        row_data = {}
+        for idx, key in enumerate(keys):
+            col_data = results[idx]
+            row_data[key] = col_data[i][0] if i < len(col_data) and col_data[i] else None
+        row_dicts.append(row_data)
+
+    return row_dicts
+
+def output_google_spreadsheet_multi(sheet, column_map, row_start, data_list):
+    keys = [k for k in column_map if k != "headder"]
+    row_end = row_start + len(data_list) - 1
+
+    # キーごとに列単位の2次元リストを構成
+    updates = []
+    for key in keys:
+        col_letter = column_map[key]
+        col_range = f"{col_letter}{row_start}:{col_letter}{row_end}"
+        col_values = [[str(row.get(key, ""))] for row in data_list]
+        updates.append({"range": col_range, "values": col_values})
+
+    try:
+        sheet.batch_update(updates)
+        logger.info(f" > spreadsheet.py_🟢 batch_update success")
+    except Exception as e:
+        raise RuntimeError(f" > spreadsheet.py_🔴 batch_update failed: {e}")
 
 if __name__ == "__main__":
 	spreadsheet = {
