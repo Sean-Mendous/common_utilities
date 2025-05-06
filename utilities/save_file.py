@@ -13,7 +13,7 @@ def save_by_json(data, output_path):
         return True
 
     except Exception as e:
-        return False
+        raise RuntimeError(f'Failed to save: {e}') from e
 
 
 def save_by_csv(data, output_path):
@@ -29,7 +29,7 @@ def save_by_csv(data, output_path):
         return True
 
     except Exception as e:
-        return False
+        raise RuntimeError(f'Failed to save: {e}') from e
 
 
 def save_by_txt(data, output_path): 
@@ -44,4 +44,4 @@ def save_by_txt(data, output_path):
         return True
 
     except Exception as e:
-        return False
+        raise RuntimeError(f'Failed to save: {e}') from e

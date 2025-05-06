@@ -1,7 +1,7 @@
 import os
 import gspread
 from google.oauth2.service_account import Credentials
-from utilities.logger import logger
+from logger import logger
 
 """
 spreadsheet = {
@@ -20,55 +20,65 @@ spreadsheet = {
 """
 
 def certification_google_spreadsheet(sheet_id, worksheet_name, credentials_path):
-	scopes = [
-		"https://www.googleapis.com/auth/spreadsheets",
-		"https://www.googleapis.com/auth/drive"
-	]
-      
-	creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-	client = gspread.authorize(creds)
-	sheet = client.open_by_key(sheet_id).worksheet(worksheet_name)
-	return sheet
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
+        
+        creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+        client = gspread.authorize(creds)
+        sheet = client.open_by_key(sheet_id).worksheet(worksheet_name)
+        return sheet
+    except Exception as e:
+        raise RuntimeError(f'Failed to authorize: {e}') from e
 
 def duplicate_google_sheet(sheet_id, duplicate_sheet_name, credentials_path, new_sheet_name):
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
+    try:
+        scopes = [
+            "https://www.googleapis.com/auth/spreadsheets",
+            "https://www.googleapis.com/auth/drive"
+        ]
 
-    creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
-    client = gspread.authorize(creds)
-
-    spreadsheet = client.open_by_key(sheet_id)
+        creds = Credentials.from_service_account_file(credentials_path, scopes=scopes)
+        client = gspread.authorize(creds)
+        spreadsheet = client.open_by_key(sheet_id)
+    except Exception as e:
+        raise RuntimeError(f'Failed to authorize: {e}') from e
 
     try:
         duplicate_sheet = spreadsheet.worksheet(duplicate_sheet_name)
     except gspread.exceptions.WorksheetNotFound:
-        raise ValueError(f"google_spreadsheet.py_🔴 cannot find'{duplicate_sheet_name}'")
+        raise RuntimeError(f'Failed to duplicate: {e}') from e
 
     existing_sheet_names = [ws.title for ws in spreadsheet.worksheets()]
     if new_sheet_name in existing_sheet_names:
-        logger.info(f"google_spreadsheet.py_🟡 '{new_sheet_name}' already exists!")
+        logger.warning(f' >name already exist ${new_sheet_name}')
         return spreadsheet.worksheet(new_sheet_name)
 
-    response = spreadsheet.duplicate_sheet(
-        source_sheet_id=duplicate_sheet.id,
-        insert_sheet_index=0,
-        new_sheet_name=new_sheet_name
-    )
-
-    logger.info(f"google_spreadsheet.py_🟢 successfully duplicated '{new_sheet_name}'")
-    return spreadsheet.worksheet(new_sheet_name)
+    try:
+        response = spreadsheet.duplicate_sheet(
+            source_sheet_id=duplicate_sheet.id,
+            insert_sheet_index=0,
+            new_sheet_name=new_sheet_name
+        )
+        logger.info(f" >successfully duplicated ${new_sheet_name}")
+        return spreadsheet.worksheet(new_sheet_name)
+    except Exception as e:
+        raise RuntimeError(f'Failed to duplicate: {e}') from e
 
 def input_google_spreadsheet(sheet, column_map, row):
-    data = {}
-    for key, col in column_map.items():
-        try:
-            cell_value = sheet.acell(f"{col}{row}").value
-        except Exception:
-            cell_value = None
-        data[key] = cell_value
-    return data
+    try:
+        data = {}
+        for key, col in column_map.items():
+            try:
+                cell_value = sheet.acell(f"{col}{row}").value
+            except Exception:
+                cell_value = None
+            data[key] = cell_value
+        return data
+    except Exception as e:
+        raise RuntimeError(f'Failed to input: {e}') from e
 
 def output_google_spreadsheet(sheet, column_map, row, data):
     try:
@@ -77,12 +87,10 @@ def output_google_spreadsheet(sheet, column_map, row, data):
                 cell = f"{col_letter}{row}"
                 value = data[key] if data[key] else "-"
                 sheet.update_acell(cell, value)
-                logger.info(f" > google_spreadsheet.py_{key}: {value}")
+                logger.info(f" >{key}: {value}")
         return True
-
     except Exception as e:
-        logger.error(f"google_spreadsheet.py_🔴 {e}")
-        return False
+        raise RuntimeError(f'Failed to output: {e}') from e
 
 def input_google_spreadsheet_multi(sheet, column_map, row_start, row_end):
     keys = [k for k in column_map if k != "headder"]
@@ -90,38 +98,40 @@ def input_google_spreadsheet_multi(sheet, column_map, row_start, row_end):
     
     try:
         results = sheet.batch_get(ranges)
-        logger.info(f" > spreadsheet.py_🟢 batch_get success")
+        logger.info(f" >batch_get success")
     except Exception as e:
-        raise RuntimeError(f" > spreadsheet.py_🔴 batch_get failed: {e}")
+        raise RuntimeError(f" >batch_get failed: {e}") from e
 
     row_count = row_end - row_start + 1
     row_dicts = []
 
-    for i in range(row_count):
-        row_data = {}
-        for idx, key in enumerate(keys):
-            col_data = results[idx]
-            row_data[key] = col_data[i][0] if i < len(col_data) and col_data[i] else None
-        row_dicts.append(row_data)
-
-    return row_dicts
+    try:
+        for i in range(row_count):
+            row_data = {}
+            for idx, key in enumerate(keys):
+                col_data = results[idx]
+                row_data[key] = col_data[i][0] if i < len(col_data) and col_data[i] else None
+            row_dicts.append(row_data)
+        logger.info(f" >input_multi success")
+        return row_dicts
+    except Exception as e:
+        raise RuntimeError(f" >input_multi failed: {e}") from e
 
 def output_google_spreadsheet_multi(sheet, column_map, row_start, data_list):
     keys = [k for k in column_map if k != "headder"]
     row_end = row_start + len(data_list) - 1
-
     updates = []
     for key in keys:
         col_letter = column_map[key]
         col_range = f"{col_letter}{row_start}:{col_letter}{row_end}"
         col_values = [[str(row.get(key, ""))] for row in data_list]
         updates.append({"range": col_range, "values": col_values})
-
     try:
         sheet.batch_update(updates)
-        logger.info(f" > spreadsheet.py_🟢 batch_update success")
+        logger.info(f" >batch_update success")
+        return True
     except Exception as e:
-        raise RuntimeError(f" > spreadsheet.py_🔴 batch_update failed: {e}")
+        raise RuntimeError(f" >batch_update failed: {e}") from e
 
 if __name__ == "__main__":
 	spreadsheet = {

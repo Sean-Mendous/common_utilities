@@ -11,7 +11,7 @@ def setup_logger():
     if not logger.handlers:
         # ファイル用ハンドラ
         file_handler = logging.FileHandler("logs/execution.log", encoding="utf-8")
-        file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        file_formatter = logging.Formatter('%(asctime)s [%(levelname)s] [%(filename)s - %(funcName)s] %(message)s')
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
 
