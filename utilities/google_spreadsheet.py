@@ -53,7 +53,7 @@ def duplicate_google_sheet(sheet_id, duplicate_sheet_name, credentials_path, new
 
     existing_sheet_names = [ws.title for ws in spreadsheet.worksheets()]
     if new_sheet_name in existing_sheet_names:
-        logger.warning(f' >name already exist ${new_sheet_name}')
+        logger.warning(f' >name already exist "{new_sheet_name}"')
         return spreadsheet.worksheet(new_sheet_name)
 
     try:
