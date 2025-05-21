@@ -1,5 +1,5 @@
 import requests
-from logger import logger
+from utilities.logger import logger
 
 def send_line_notify(message: str, access_token: str):
     user_id = 'U51db96863351e36f656219f8afc437d9'
